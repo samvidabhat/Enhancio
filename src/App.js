@@ -38,70 +38,64 @@ export const mapDispatchToProps = (dispatch) =>{
   constructor(props){
     super(props);
     this.state={
-      githubResp:[]
+      errorMsg:"",
+      showErrorMsg:false
     }
   }
   
   async componentDidMount(){
     let respData =[],detailsPromises=[];
-    axios.get("https://api.github.com/search/repositories?q=location:Bangalore&sort=stars").then(resp=>{
+    axios.get("https://api.github.com/search/users?q=location:bangalore").then(resp=>{
       resp.data.items.slice(0,10).map(res=>{
         let userObj={
           owner_id:0,
           owner_name:"",
           full_name:"",
-          repoName:"",
           avatar_url:"",
           user_url:"",
-          company:"",
           email:"test@gmail.com",
-          location:"Bangalore, India",
+          location:"",
           bio:"",
-          stars:res.watchers
         }  
-        userObj.owner_id=res.owner.id
+        userObj.owner_id=res.id
         userObj.repoName=res.name;
-        userObj.owner_name=res.owner.login;
-        userObj.avatar_url=res.owner.avatar_url;
-        userObj.user_url=res.owner.html_url;
-        detailsPromises.push(axios.get(res.owner.url));
+        userObj.owner_name=res.login;
+        userObj.avatar_url=res.avatar_url;
+        userObj.user_url=res.html_url;
+        detailsPromises.push(axios.get(res.url));
         respData.push(userObj);
       });
       Promise.all(detailsPromises).then(details=>{
         console.log("details",details)
         details.forEach(item=>{
           let index=respData.findIndex(data=>data.owner_id===item.data.id);
-          console.log();
           respData[index].company = item.data.company !== null? item.data.company : "";
           respData[index].email=item.data.email !== null ? item.data.email : "test@gmail.com";
           respData[index].full_name=item.data.name;
+          respData[index].location=item.data.location;
           respData[index].bio=item.data.bio;
         });
        
         this.props.setServiceResponse(respData);
+      }).catch(error=>{
+        if(error.message.includes("rate limit exceeded")){
+          this.setState({showErrorMsg:true,errorMsg:"API rate limit exceeded."})
+        }
       });
       });
   }
-  getWatchers(stars){
-    let starSpan=[];
-    for(let i=0;i<stars;i++){
-       starSpan.push(<span key={i} style={{marginLeft:5,marginTop:2,color:'gold'}}><TiStarFullOutline /></span>);
-    }
-    return starSpan;
-   
-  }
+
   getBody(){
      let data=this.props.githubResp &&   this.props.githubResp.map((repo,i)=>{
       return <div key={'repo_'+i} style={{marginLeft:50,marginTop:20}}>
-          <img width='45' className="" src={repo.avatar_url} alt={repo.owner_name} />
+          <img width='50' className="" src={repo.avatar_url} alt={repo.owner_name} />
           <div style={{display:'inline-block',marginLeft:10}}>
           <StyledAnchor
           target="_blank"
            rel="noopener noreferrer"
            text={repo.owner_name}
           href={repo.user_url} />
-          <span style={{display:'inline-block',marginLeft:10, fontSize:'1em'}}>{repo.repoName}</span>
-          {this.getWatchers(repo.stars)}
+          <span style={{display:'inline-block',marginLeft:10, fontSize:'1em'}}>{repo.full_name}</span>
           <div style={{marginTop:5,marginBottom:5}}>{repo.bio}</div>
           <div><TiLocationOutline /> {repo.location} <span style={{marginLeft:5}}><AiOutlineMail /> {repo.email} </span></div>
         </div>
@@ -112,6 +106,7 @@ export const mapDispatchToProps = (dispatch) =>{
   render(){
      return  <div style={{marginTop:50}}>
         <Container>
+          {this.state.showErrorMsg && <div style={{color:"red"}} >API Rate limit exceeded</div>}
         {this.getBody()}
         </Container>
   </div>;
