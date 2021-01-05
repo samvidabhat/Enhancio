@@ -4,7 +4,7 @@
   "description": "An app to fetch data from github api and display the top users",
   "dependencies": {
     "@babel/core": "^7.7.7",
-    "axios": "^0.19.1",
+    "axios": "^0.21.1",
     "babel-loader": "^8.0.6",
     "css-loader": "^3.4.1",
     "react": "^16.12.0",
